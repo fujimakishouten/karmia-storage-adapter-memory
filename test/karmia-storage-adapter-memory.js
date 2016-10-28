@@ -12,6 +12,111 @@ const co = require('co'),
 
 
 describe('karmia-storage-adapter-memory', function () {
+    describe('getConnection', function () {
+        it('Should not get connection', function (done) {
+            const storage = adapter();
+            expect(storage.getConnection()).to.be(undefined);
+
+            done();
+        });
+
+        it('Should get connection', function (done) {
+            const storage = adapter();
+            storage.connect().then(function () {
+                const connection = storage.getConnection();
+                expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
+
+                done();
+            });
+        });
+    });
+
+    describe('connect', function () {
+        describe('Should connect to database', function () {
+            it('Promise', function (done) {
+                const storage = adapter();
+                storage.connect().then(function () {
+                    const connection = storage.getConnection();
+                    expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
+
+                    done();
+                }).catch(function (error) {
+                    done(error);
+                });
+            });
+
+            it('Callback', function (done) {
+                const storage = adapter();
+                storage.connect(function (error) {
+                    if (error) {
+                        return done(error);
+                    }
+
+                    const connection = storage.getConnection();
+                    expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
+
+                    done();
+                });
+            });
+        });
+    });
+
+    describe('disconnect', function () {
+        describe('Should disconnect database', function () {
+            describe('Connected', function () {
+                it('Promise', function (done) {
+                    const storage = adapter();
+                    storage.connect().then(function () {
+                        return storage.disconnect();
+                    }).then(function (result) {
+                        expect(result).to.be(undefined);
+
+                        done();
+                    }).catch(done);
+                });
+
+                it('Callback', function (done) {
+                    const storage = adapter();
+                    storage.connect().then(function () {
+                        storage.disconnect(function (error, result) {
+                            if (error) {
+                                return done(error);
+                            }
+
+                            expect(result).to.be(undefined);
+
+                            done();
+                        });
+                    });
+                });
+            });
+
+            describe('Not connected', function () {
+                it('Promise', function (done) {
+                    const storage = adapter();
+                    storage.disconnect().then(function (result) {
+                        expect(result).to.be(undefined);
+
+                        done();
+                    }).catch(done);
+                });
+
+                it('Callback', function (done) {
+                    const storage = adapter();
+                    storage.disconnect(function (error, result) {
+                        if (error) {
+                            return done(error);
+                        }
+
+                        expect(result).to.be(undefined);
+
+                        done();
+                    });
+                });
+            });
+        });
+    });
+
     describe('store', function () {
         describe('Should store value', function () {
             it('Promise', function (done) {
