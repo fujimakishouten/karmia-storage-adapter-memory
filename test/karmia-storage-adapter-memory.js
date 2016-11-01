@@ -29,6 +29,15 @@ describe('karmia-storage-adapter-memory', function () {
                 done();
             });
         });
+
+        it('Should get existing connection', function (done) {
+            const connection = {name: 'TEST_CONNECTION'},
+                storage = adapter({}, connection);
+
+            expect(storage.getConnection()).to.be(connection);
+
+            done();
+        });
     });
 
     describe('connect', function () {

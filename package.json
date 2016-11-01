@@ -1,6 +1,6 @@
 {
     "name": "karmia-storage-adapter-memory",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "In-memory storage adapter for Karmia Database",
     "homepage": "https://github.com/fujimakishouten/karmia-storage-adapter-memory",
     "license": "MIT",
