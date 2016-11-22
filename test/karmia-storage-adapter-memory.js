@@ -6,24 +6,25 @@
 
 
 // Variables
-const co = require('co'),
-    expect = require('expect.js'),
-    adapter = require('../');
+const expect = require('expect.js'),
+    fixture = require('./resource/fixture'),
+    adapter = require('../'),
+    options = {};
 
 
 describe('karmia-storage-adapter-memory', function () {
     describe('getConnection', function () {
         it('Should not get connection', function (done) {
-            const storage = adapter();
-            expect(storage.getConnection()).to.be(undefined);
+            const storages = adapter(options);
+            expect(storages.getConnection()).to.be(undefined);
 
             done();
         });
 
         it('Should get connection', function (done) {
-            const storage = adapter();
-            storage.connect().then(function () {
-                const connection = storage.getConnection();
+            const storages = adapter(options);
+            storages.connect().then(function () {
+                const connection = storages.getConnection();
                 expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
 
                 done();
@@ -32,9 +33,9 @@ describe('karmia-storage-adapter-memory', function () {
 
         it('Should get existing connection', function (done) {
             const connection = {name: 'TEST_CONNECTION'},
-                storage = adapter({}, connection);
+                storages = adapter(options, connection);
 
-            expect(storage.getConnection()).to.be(connection);
+            expect(storages.getConnection()).to.be(connection);
 
             done();
         });
@@ -43,9 +44,9 @@ describe('karmia-storage-adapter-memory', function () {
     describe('connect', function () {
         describe('Should connect to database', function () {
             it('Promise', function (done) {
-                const storage = adapter();
-                storage.connect().then(function () {
-                    const connection = storage.getConnection();
+                const storages = adapter(options);
+                storages.connect().then(function () {
+                    const connection = storages.getConnection();
                     expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
 
                     done();
@@ -55,13 +56,9 @@ describe('karmia-storage-adapter-memory', function () {
             });
 
             it('Callback', function (done) {
-                const storage = adapter();
-                storage.connect(function (error) {
-                    if (error) {
-                        return done(error);
-                    }
-
-                    const connection = storage.getConnection();
+                const storages = adapter(options);
+                storages.connect(function () {
+                    const connection = storages.getConnection();
                     expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
 
                     done();
@@ -71,12 +68,12 @@ describe('karmia-storage-adapter-memory', function () {
     });
 
     describe('disconnect', function () {
-        describe('Should disconnect database', function () {
+        describe('Should disconnect from database', function () {
             describe('Connected', function () {
                 it('Promise', function (done) {
-                    const storage = adapter();
-                    storage.connect().then(function () {
-                        return storage.disconnect();
+                    const storages = adapter(options);
+                    storages.connect().then(function () {
+                        return storages.disconnect();
                     }).then(function (result) {
                         expect(result).to.be(undefined);
 
@@ -85,9 +82,9 @@ describe('karmia-storage-adapter-memory', function () {
                 });
 
                 it('Callback', function (done) {
-                    const storage = adapter();
-                    storage.connect().then(function () {
-                        storage.disconnect(function (error, result) {
+                    const storages = adapter(options);
+                    storages.connect().then(function () {
+                        storages.disconnect(function (error, result) {
                             if (error) {
                                 return done(error);
                             }
@@ -102,8 +99,8 @@ describe('karmia-storage-adapter-memory', function () {
 
             describe('Not connected', function () {
                 it('Promise', function (done) {
-                    const storage = adapter();
-                    storage.disconnect().then(function (result) {
+                    const storages = adapter(options);
+                    storages.disconnect().then(function (result) {
                         expect(result).to.be(undefined);
 
                         done();
@@ -111,8 +108,8 @@ describe('karmia-storage-adapter-memory', function () {
                 });
 
                 it('Callback', function (done) {
-                    const storage = adapter();
-                    storage.disconnect(function (error, result) {
+                    const storages = adapter(options);
+                    storages.disconnect(function (error, result) {
                         if (error) {
                             return done(error);
                         }
@@ -126,369 +123,167 @@ describe('karmia-storage-adapter-memory', function () {
         });
     });
 
-    describe('store', function () {
-        describe('Should store value', function () {
-            it('Promise', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        storage = adapter({size: 5});
+    describe('storage', function () {
+        const storages = adapter(options),
+            name = 'user';
 
-                    expect(storage.buffer.length).to.be(0);
-                    yield storage.store(key, value);
-                    expect(storage.buffer.length).to.be(1);
-                    expect(storage.buffer[0]).to.eql({
-                        key: key,
-                        value: value
+        before(function (done) {
+            storages.connect().then(function () {
+                const storage = storages.storage(name);
+
+                return fixture.reduce(function (promise, data) {
+                    return promise.then(function () {
+                        return storage.set(data.key, data.value);
                     });
-
-                    done();
-                });
-            });
-
-            it('Callback', function (done) {
-                const key = 'KEY',
-                    value = 'VALUE',
-                    storage = adapter({size: 5});
-
-                expect(storage.buffer.length).to.be(0);
-                storage.store(key, value, function (error) {
-                    if (error) {
-                        return done(error);
-                    }
-
-                    expect(storage.buffer.length).to.be(1);
-                    expect(storage.buffer[0]).to.eql({
-                        key: key,
-                        value: value
-                    });
-
-                    done();
-                });
-            });
+                }, Promise.resolve());
+            }).then(function () {
+                done();
+            }).catch(done);
         });
 
-        describe('Should overwrite old value', function () {
-            it('Promise', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        size = 5,
-                        storage = adapter({size: size});
+        after(function (done) {
+            storages.storages = {};
 
-                    expect(storage.buffer.length).to.be(0);
-                    for (let i = 0; i < size; ++i) {
-                        yield storage.store(i, i);
-                    }
-                    expect(storage.buffer.length).to.be(size);
+            done();
+        });
 
-                    yield storage.store(key, value);
-                    expect(storage.buffer.length).to.be(size);
-                    expect(storage.buffer[0]).to.eql({
-                        key: key,
-                        value: value
-                    });
-
-                    done();
-                });
-            });
-
-            it('Callback', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        size = 5,
-                        storage = adapter({size: size});
-
-                    expect(storage.buffer.length).to.be(0);
-                    for (let i = 0; i < size; ++i) {
-                        yield storage.store(i, i);
-                    }
-                    expect(storage.buffer.length).to.be(size);
-
-                    storage.store(key, value, function (error) {
-                        if (error) {
-                            return done(error);
-                        }
-
-                        expect(storage.buffer.length).to.be(size);
-                        expect(storage.buffer[0]).to.eql({
-                            key: key,
-                            value: value
-                        });
+        describe('count', function () {
+            describe('Should count items', function () {
+                it('Promise', function (done) {
+                    const storage = storages.storage(name);
+                    storage.count().then(function (result) {
+                        expect(result).to.be(9);
 
                         done();
-                    });
+                    }).catch(done);
                 });
-            });
-        });
 
-        describe('Should set adapter size to unlimited', function () {
-            it('Promise', function (done) {
-                co(function* () {
-                    const size = 5,
-                        infinite = true,
-                        storage = adapter({
-                            size: size,
-                            infinite: infinite
-                        });
-
-                    for (let i = 0; i < size + 1; ++i) {
-                        yield storage.store(i, i);
-                    }
-
-                    expect(storage.buffer.length).to.be(size + 1);
-
-                    done();
-                });
-            });
-
-            it('Callback', function (done) {
-                co(function* () {
-                    const size = 5,
-                        infinite = true,
-                        storage = adapter({
-                            size: size,
-                            infinite: infinite
-                        });
-
-                    for (let i = 0; i < size; ++i) {
-                        yield storage.store(i, i);
-                    }
-
-                    storage.store('key', 'value', function (error) {
-                        if (error) {
-                            return done(error);
-                        }
-
-                        expect(storage.buffer.length).to.be(size + 1);
-
-                        done();
-                    });
-                });
-            });
-        });
-    });
-
-    describe('count', function () {
-        describe('Should count items', function () {
-            it('Promise', function (done) {
-                co(function* () {
-                    const size = 5,
-                        length = 3,
-                        storage = adapter({size: size});
-
-                    expect(yield storage.count()).to.be(0);
-                    for (let i = 0; i < length; ++i) {
-                        yield storage.store(i, i);
-                    }
-                    expect(yield storage.count()).to.be(length);
-
-                    done();
-                });
-            });
-
-            it('Callback', function (done) {
-                co(function* () {
-                    const size = 5,
-                        length = 3,
-                        storage = adapter({size: size});
-
-                    expect(yield storage.count()).to.be(0);
-                    for (let i = 0; i < length; ++i) {
-                        yield storage.store(i, i);
-                    }
-
+                it('Callback', function (done) {
+                    const storage = storages.storage(name);
                     storage.count(function (error, result) {
                         if (error) {
                             return done(error);
                         }
 
-                        expect(result).to.be(length);
+                        expect(result).to.be(9);
 
                         done();
                     });
                 });
             });
         });
-    });
 
-    describe('has', function () {
-        describe('Should check is key exists', function () {
+        describe('get', function () {
             it('Promise', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        storage = adapter({size: 5});
-
-                    expect(yield storage.has(key)).to.be(false);
-                    yield storage.store(key, value);
-                    expect(yield storage.has(key)).to.be(true);
+                const storage = storages.storage(name),
+                    data = fixture[0];
+                storage.get(data.key).then(function (result) {
+                    expect(result).to.be(data.value);
 
                     done();
-                });
+                }).catch(done);
             });
 
             it('Callback', function (done) {
-                const key = 'KEY',
-                    value = 'VALUE',
-                    storage = adapter({size: 5});
-
-                storage.has(key, function (error, result) {
+                const storage = storages.storage(name),
+                    data = fixture[0];
+                storage.get(data.key, function (error, result) {
                     if (error) {
                         return done(error);
                     }
 
-                    expect(result).to.be(false);
-                    storage.store(key, value, function (error) {
+                    expect(result).to.be(data.value);
+
+                    done();
+                });
+            });
+        });
+
+        describe('set', function () {
+            it('Promise', function (done) {
+                const storage = storages.storage(name),
+                    key = 10,
+                    value = 'Yukiho Kosaka';
+
+                storage.get(key).then(function (result) {
+                    expect(result).to.be(null);
+
+                    return storage.set(key, value);
+                }).then(function () {
+                    return storage.get(key);
+                }).then(function (result) {
+                    expect(result).to.be(value);
+
+                    return storage.remove(key);
+                }).then(function () {
+                    done();
+                }).catch(done);
+            });
+
+            it('Callback', function (done) {
+                const storage = storages.storage(name),
+                    key = 10,
+                    value = 'Yukiho Kosaka';
+
+                storage.get(key, function (error, result) {
+                    if (error) {
+                        return done(error);
+                    }
+
+                    expect(result).to.be(null);
+
+                    storage.set(key, value, function (error) {
                         if (error) {
                             return done(error);
                         }
 
-                        storage.has(key, function (error, result) {
+                        storage.get(key, function (error, result) {
                             if (error) {
                                 return done(error);
                             }
 
-                            expect(result).to.be(true);
+                            expect(result).to.be(value);
 
-                            done();
-                        });
+                            storage.remove(key, done);
+                        })
                     });
                 });
             });
         });
 
-
-
-    });
-
-    describe('set', function () {
-        describe('Should store new value', function () {
+        describe('remove', function () {
             it('Promise', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        storage = adapter({size: 5});
+                const storage = storages.storage(name),
+                    key = 10,
+                    value = 'Yukiho Kosaka';
 
-                    expect(storage.buffer.length).to.be(0);
-                    yield storage.set(key, value);
-                    expect(storage.buffer.length).to.be(1);
-                    expect(storage.buffer[0]).to.eql({
-                        key: key,
-                        value: value
-                    });
+                storage.set(key, value).then(function () {
+                    return storage.get(key);
+                }).then(function (result) {
+                    expect(result).to.be(value);
+
+                    return storage.remove(key);
+                }).then(function (result) {
+                    expect(result).to.be(undefined);
+
+                    return storage.get(key);
+                }).then(function (result) {
+                    expect(result).to.be(null);
 
                     done();
-                });
+                })
             });
 
             it('Callback', function (done) {
-                const key = 'KEY',
-                    value = 'VALUE',
-                    storage = adapter({size: 5});
+                const storage = storages.storage(name),
+                    key = 10,
+                    value = 'Yukiho Kosaka';
 
-                expect(storage.buffer.length).to.be(0);
                 storage.set(key, value, function (error) {
                     if (error) {
                         return done(error);
                     }
 
-                    expect(storage.buffer.length).to.be(1);
-                    expect(storage.buffer[0]).to.eql({
-                        key: key,
-                        value: value
-                    });
-
-                    done();
-                });
-            });
-        });
-
-        describe('Should update value', function () {
-            it('Promise', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        update = 'VALUE_UPDATED',
-                        storage = adapter({size: 5});
-
-                    yield storage.store(key, value);
-                    expect(storage.buffer[0]).to.eql({
-                        key: key,
-                        value: value
-                    });
-
-                    yield storage.set(key, update);
-                    expect(storage.buffer[0]).to.eql({
-                        key: key,
-                        value: update
-                    });
-
-                    done();
-                });
-            });
-
-            it('Callback', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        update = 'VALUE_UPDATED',
-                        storage = adapter({size: 5});
-
-                    storage.store(key, value, function (error) {
-                        if (error) {
-                            return done(error);
-                        }
-
-                        expect(storage.buffer[0]).to.eql({
-                            key: key,
-                            value: value
-                        });
-
-                        storage.set(key, update, function (error) {
-                            if (error) {
-                                return done(error);
-                            }
-
-                            expect(storage.buffer[0]).to.eql({
-                                key: key,
-                                value: update
-                            });
-
-                            done();
-                        });
-                    });
-                });
-            });
-        });
-    });
-
-    describe('get', function () {
-        describe('Should get value', function () {
-            it('Promise', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        storage = adapter({size: 5});
-
-                    yield storage.store(key, value);
-                    expect(yield storage.get(key)).to.be(value);
-
-                    done();
-                });
-            });
-
-            it('Callback', function (done) {
-                const key = 'KEY',
-                    value = 'VALUE',
-                    storage = adapter({size: 5});
-
-                storage.store(key, value, function (error) {
-                    if (error) {
-                        return done(error);
-                    }
-
                     storage.get(key, function (error, result) {
                         if (error) {
                             return done(error);
@@ -496,57 +291,19 @@ describe('karmia-storage-adapter-memory', function () {
 
                         expect(result).to.be(value);
 
-                        done();
-                    });
-                });
-            });
-        });
-
-        describe('Should get updated value', function () {
-            it('Promise', function (done) {
-                co(function* () {
-                    const key = 'KEY',
-                        value = 'VALUE',
-                        update = 'VALUE_UPDATED',
-                        storage = adapter({size: 5});
-
-                    yield storage.store(key, value);
-                    expect(yield storage.get(key)).to.be(value);
-                    yield storage.store(key, update);
-                    expect(yield storage.get(key)).to.be(update);
-
-                    done();
-                });
-            });
-
-            it('Callback', function (done) {
-                const key = 'KEY',
-                    value = 'VALUE',
-                    update = 'VALUE_UPDATED',
-                    storage = adapter({size: 5});
-
-                storage.store(key, value, function (error, result) {
-                    if (error) {
-                        return done(error);
-                    }
-
-                    storage.get(key, function (error, result) {
-                        if (error) {
-                            return done(error);
-                        }
-
-                        expect(result).to.be(value);
-                        storage.set(key, update, function (error) {
+                        storage.remove(key, function (error, result) {
                             if (error) {
                                 return done(error);
                             }
+
+                            expect(result).to.be(result);
 
                             storage.get(key, function (error, result) {
                                 if (error) {
                                     return done(error);
                                 }
 
-                                expect(result).to.be(update);
+                                expect(result).to.be(null);
 
                                 done();
                             });
@@ -555,41 +312,150 @@ describe('karmia-storage-adapter-memory', function () {
                 });
             });
         });
-    });
 
-    describe('remove', function () {
-        describe('Should remove value', function () {
+        describe('store', function () {
+            describe('Should store value', function () {
+                it('Promise', function (done) {
+                    const storage = storages.storage('store', {size: 5}),
+                        key = 'KEY',
+                        value = 'VALUE';
+
+                    expect(storage.buffer.length).to.be(0);
+                    storage.store(key, value).then(function () {
+                        expect(storage.buffer.length).to.be(1);
+                        expect(storage.buffer[0]).to.eql({
+                            key: key,
+                            value: value
+                        });
+
+                        storages.storages = {};
+
+                        done();
+                    });
+                });
+
+                it('Callback', function (done) {
+                    const storage = storages.storage('store', {size: 5}),
+                        key = 'KEY',
+                        value = 'VALUE';
+
+                    expect(storage.buffer.length).to.be(0);
+                    storage.store(key, value, function (error) {
+                        if (error) {
+                            return done(error);
+                        }
+
+                        expect(storage.buffer.length).to.be(1);
+                        expect(storage.buffer[0]).to.eql({
+                            key: key,
+                            value: value
+                        });
+
+                        storages.storages = {};
+
+                        done();
+                    });
+                });
+            });
+
+            describe('Should overwrite old value', function () {
+                it('Promise', function (done) {
+                    const key = 'KEY',
+                        value = 'VALUE',
+                        size = 5,
+                        storage = storages.storage('store', {size: size});
+
+                    expect(storage.buffer.length).to.be(0);
+                    Array.apply(null, {length: size}).map(Number.call, Number).reduce(function (collection, value) {
+                        return storage.set(value, value);
+                    }, Promise.resolve()).then(function () {
+                        expect(storage.buffer.length).to.be(size);
+
+                        return storage.set(key, value);
+                    }).then(function () {
+                        expect(storage.buffer.length).to.be(size);
+                        expect(storage.buffer[0]).to.eql({
+                            key: key,
+                            value: value
+                        });
+
+                        storages.storages = {};
+
+                        done();
+                    });
+                });
+
+                it('Callback', function (done) {
+                    const key = 'KEY',
+                        value = 'VALUE',
+                        size = 5,
+                        storage = storages.storage('store', {size: size});
+
+                    expect(storage.buffer.length).to.be(0);
+                    Array.apply(null, {length: size}).map(Number.call, Number).reduce(function (collection, value) {
+                        return storage.set(value, value);
+                    }, Promise.resolve()).then(function () {
+                        expect(storage.buffer.length).to.be(size);
+
+                        storage.set(key, value, function (error) {
+                            if (error) {
+                                return done(error);
+                            }
+
+                            expect(storage.buffer.length).to.be(size);
+                            expect(storage.buffer[0]).to.eql({
+                                key: key,
+                                value: value
+                            });
+
+                            storages.storages = {};
+
+                            done();
+                        });
+                    });
+                });
+            });
+        });
+
+        describe('Should set adapter size to unlimited', function () {
             it('Promise', function (done) {
-                co(function* () {
-                    const size = 5,
-                        storage = adapter({size: size});
+                const size = 5,
+                    infinite = true,
+                    storage = storages.storage('store', {
+                        size: size,
+                        infinite: infinite
+                    });
+                Array.apply(null, {length: size + 1}).map(Number.call, Number).reduce(function (collection, value) {
+                    return storage.set(value, value);
+                }, Promise.resolve()).then(function () {
+                    expect(storage.buffer.length).to.be(size + 1);
 
-                    for (let i = 0; i < size; ++i) {
-                        yield storage.store(i, i);
-                    }
-
-                    expect(storage.buffer.length).to.be(size);
-                    yield storage.remove(2);
-                    expect(storage.buffer.length).to.be(size - 1);
-                    expect(storage.map[2]).to.be(undefined);
+                    storages.storages = {};
 
                     done();
                 });
             });
 
             it('Callback', function (done) {
-                co(function* () {
-                    const size = 5,
-                        storage = adapter({size: size});
+                const key = 'KEY',
+                    value = 'VALUE',
+                    size = 5,
+                    infinite = true,
+                    storage = storages.storage('store', {
+                        size: size,
+                        infinite: infinite
+                    });
+                Array.apply(null, {length: size}).map(Number.call, Number).reduce(function (collection, value) {
+                    return storage.set(value, value);
+                }, Promise.resolve()).then(function () {
+                    storage.store(key, value, function (error) {
+                        if (error) {
+                            return done(error);
+                        }
 
-                    for (let i = 0; i < size; ++i) {
-                        yield storage.store(i, i);
-                    }
+                        expect(storage.buffer.length).to.be(size + 1);
 
-                    expect(storage.buffer.length).to.be(size);
-                    storage.remove(2, function (error, result) {
-                        expect(storage.buffer.length).to.be(size - 1);
-                        expect(storage.map[2]).to.be(undefined);
+                        storages.storages = {};
 
                         done();
                     });
