@@ -15,14 +15,14 @@ const expect = require('expect.js'),
 describe('karmia-storage-adapter-memory', function () {
     describe('getConnection', function () {
         it('Should not get connection', function (done) {
-            const storages = adapter(options);
+            const storages = new adapter(options);
             expect(storages.getConnection()).to.be(undefined);
 
             done();
         });
 
         it('Should get connection', function (done) {
-            const storages = adapter(options);
+            const storages = new adapter(options);
             storages.connect().then(function () {
                 const connection = storages.getConnection();
                 expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
@@ -33,7 +33,7 @@ describe('karmia-storage-adapter-memory', function () {
 
         it('Should get existing connection', function (done) {
             const connection = {name: 'TEST_CONNECTION'},
-                storages = adapter(options, connection);
+                storages = new adapter(options, connection);
 
             expect(storages.getConnection()).to.be(connection);
 
@@ -44,7 +44,7 @@ describe('karmia-storage-adapter-memory', function () {
     describe('connect', function () {
         describe('Should connect to database', function () {
             it('Promise', function (done) {
-                const storages = adapter(options);
+                const storages = new adapter(options);
                 storages.connect().then(function () {
                     const connection = storages.getConnection();
                     expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
@@ -56,7 +56,7 @@ describe('karmia-storage-adapter-memory', function () {
             });
 
             it('Callback', function (done) {
-                const storages = adapter(options);
+                const storages = new adapter(options);
                 storages.connect(function () {
                     const connection = storages.getConnection();
                     expect(connection.constructor.name).to.be('KarmiaStorageAdapterMemory');
@@ -71,7 +71,7 @@ describe('karmia-storage-adapter-memory', function () {
         describe('Should disconnect from database', function () {
             describe('Connected', function () {
                 it('Promise', function (done) {
-                    const storages = adapter(options);
+                    const storages = new adapter(options);
                     storages.connect().then(function () {
                         return storages.disconnect();
                     }).then(function (result) {
@@ -82,7 +82,7 @@ describe('karmia-storage-adapter-memory', function () {
                 });
 
                 it('Callback', function (done) {
-                    const storages = adapter(options);
+                    const storages = new adapter(options);
                     storages.connect().then(function () {
                         storages.disconnect(function (error, result) {
                             if (error) {
@@ -99,7 +99,7 @@ describe('karmia-storage-adapter-memory', function () {
 
             describe('Not connected', function () {
                 it('Promise', function (done) {
-                    const storages = adapter(options);
+                    const storages = new adapter(options);
                     storages.disconnect().then(function (result) {
                         expect(result).to.be(undefined);
 
@@ -108,7 +108,7 @@ describe('karmia-storage-adapter-memory', function () {
                 });
 
                 it('Callback', function (done) {
-                    const storages = adapter(options);
+                    const storages = new adapter(options);
                     storages.disconnect(function (error, result) {
                         if (error) {
                             return done(error);
@@ -124,7 +124,7 @@ describe('karmia-storage-adapter-memory', function () {
     });
 
     describe('storage', function () {
-        const storages = adapter(options),
+        const storages = new adapter(options),
             name = 'user';
 
         before(function (done) {
