@@ -1,6 +1,6 @@
 {
     "name": "karmia-storage-adapter-memory",
-    "version": "0.3.0",
+    "version": "0.3.2",
     "description": "In-memory storage adapter for Karmia Database",
     "homepage": "https://github.com/fujimakishouten/karmia-storage-adapter-memory",
     "license": "MIT",
@@ -21,7 +21,8 @@
         "eslint": ">=3.5.0",
         "expect.js": ">=0.3.1",
         "istanbul": ">=0.4.5",
-        "mocha": ">=2.4.5"
+        "mocha": ">=2.4.5",
+        "karmia-storage": "../karmia-storage"
     },
     "engines": {
         "node": ">=4.0.0"
