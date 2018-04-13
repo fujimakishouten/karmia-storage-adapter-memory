@@ -5,6 +5,22 @@
 
 
 
+// Declaration
+declare interface Connection {
+    [index: string]: any;
+}
+
+declare interface Options {
+    infinite?: boolean;
+    size?: number;
+}
+
+declare interface Item {
+    key: any;
+    value: any;
+}
+
+
 /**
  * KarmiaStorageAdapterMemoryStorage
  *
@@ -12,13 +28,25 @@
  */
 class KarmiaStorageAdapterMemoryStorage {
     /**
+     * Properties
+     */
+    public buffer: Array<Item>;
+    public map: {[index: string]: number};
+    public index: number;
+
+    public connection: Connection;
+    public config: Options;
+    public infinite: boolean;
+    public size: number;
+
+    /**
      * Constructor
      *
-     * @param {Object} connection
-     * @param {Object} options
+     * @param {Object} [connection]
+     * @param {Object} [options]
      * @constructs KarmiaStorageAdapterMemoryStorage
      */
-    constructor(connection, options) {
+    constructor(connection?: Connection, options?: Options) {
         const self = this;
         self.buffer = [];
         self.map = {};
@@ -36,18 +64,12 @@ class KarmiaStorageAdapterMemoryStorage {
      *
      * @param {string} key
      * @param {*} value
-     * @param {Function} callback
+     * @param {Function} [callback]
      */
-    store(key, value, callback) {
+    store(key: any, value: any, callback?: (error?: Error, result?: any) => void): Promise<any> {
         const self = this;
         if (!self.infinite) {
             self.index = (self.index < self.size) ? self.index : 0;
-
-            // Delete existing data
-            const current = self.buffer[self.index];
-            if (current) {
-                delete self.buffer[current.key];
-            }
         }
 
         // Store data
@@ -55,44 +77,56 @@ class KarmiaStorageAdapterMemoryStorage {
         self.buffer[self.index] = {
             key: key,
             value: value
-        };
+        } as Item;
 
         // Increment counter
         self.index = self.index + 1;
 
-        return (callback) ? callback(null, value) : Promise.resolve(value);
+        if (!callback) {
+            return Promise.resolve(value);
+        }
+
+        callback(null, value);
     }
 
     /**
      * Get buffer length
      *
-     * @param {Function} callback
+     * @param {Function} [callback]
      */
-    count(callback) {
+    count(callback?: (error?: Error, result?: any) => void): Promise<any> {
         const self = this;
 
-        return (callback) ? callback(null, self.buffer.length) : Promise.resolve(self.buffer.length);
+        if (!callback) {
+            return Promise.resolve(self.buffer.length);
+        }
+
+        callback(null, self.buffer.length);
     }
 
     /**
      * Check is key exists
      *
      * @param {string} key
-     * @param {Function} callback
+     * @param {Function} [callback]
      */
-    has(key, callback) {
+    has(key: any, callback?: (error?: Error, result?: any) => void): Promise<any> {
         const self = this;
 
-        return (callback) ? callback(null, (key in self.map)) : Promise.resolve(key in self.map);
+        if (!callback) {
+            return Promise.resolve(key in self.map);
+        }
+
+        callback(null, (key in self.map));
     }
 
     /**
      * Get data
      *
      * @param {string} key
-     * @param {Function} callback
+     * @param {Function} [callback]
      */
-    get(key, callback) {
+    get(key: any, callback?: (error?: Error, result?: any) => void): Promise<any> {
         const self = this;
 
         return self.has(key).then(function (exists) {
@@ -107,9 +141,9 @@ class KarmiaStorageAdapterMemoryStorage {
      *
      * @param {string} key
      * @param {*} value
-     * @param {Function} callback
+     * @param {Function} [callback]
      */
-    set(key, value, callback) {
+    set(key: any, value: any, callback?: (error?: Error, result?: any) => void): Promise<any> {
         const self = this;
 
         return self.has(key).then(function (exists) {
@@ -127,9 +161,9 @@ class KarmiaStorageAdapterMemoryStorage {
      * Remove data
      *
      * @param {string} key
-     * @param {Function} callback
+     * @param {Function} [callback]
      */
-    remove(key, callback) {
+    remove(key: any, callback?: (error?: Error, result?: any) => void): Promise<any> {
         const self = this;
 
         return self.has(key).then(function (exists) {
@@ -147,7 +181,7 @@ class KarmiaStorageAdapterMemoryStorage {
 
 
 // Export module
-module.exports = KarmiaStorageAdapterMemoryStorage;
+export = KarmiaStorageAdapterMemoryStorage;
 
 
 
@@ -158,4 +192,3 @@ module.exports = KarmiaStorageAdapterMemoryStorage;
  * c-hanging-comment-ender-p: nil
  * End:
  */
-

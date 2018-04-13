@@ -5,7 +5,7 @@
 
 
 // Export module
-module.exports = [
+export = [
     {
         key: 1,
         value: 'Honoka Kosaka'
